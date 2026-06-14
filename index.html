@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electricity Bill Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F8FC;
+    --surface: #FFFFFF;
+    --surface-2: #F0F2F8;
+    --border: #E2E6F0;
+    --border-strong: #C8CEDF;
+    --text-1: #111827;
+    --text-2: #4B5563;
+    --text-3: #9CA3AF;
+    --accent: #2563EB;
+    --accent-light: #EFF4FF;
+    --accent-mid: #93B4F8;
+    --success: #059669;
+    --success-light: #ECFDF5;
+    --warning: #D97706;
+    --warning-light: #FFFBEB;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    --font: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-1);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; }
+  .logo-text { font-size: 16px; font-weight: 600; color: var(--text-1); letter-spacing: -0.3px; }
+  .logo-sub { font-size: 12px; color: var(--text-3); margin-top: -2px; }
+  .header-badge {
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid var(--accent-mid);
+    padding: 4px 10px;
+    border-radius: 100px;
+  }
+
+  /* ── Layout ── */
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-1);
+    margin-bottom: 6px;
+  }
+  .page-sub {
+    color: var(--text-2);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .card-title-group { display: flex; align-items: center; gap: 10px; }
+  .card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-icon svg { width: 18px; height: 18px; stroke: var(--accent); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-1); }
+  .card-desc { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+
+  /* ── Rate Config ── */
+  .rate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field-input {
+    height: 44px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text-1);
+    padding: 0 14px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    width: 100%;
+  }
+  .field-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    background: var(--surface);
+  }
+  .field-input.error { border-color: var(--danger); }
+  .field-hint { font-size: 11px; color: var(--text-3); }
+
+  /* ── Meter Readings ── */
+  .meters-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .meter-card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+  .meter-card:hover { border-color: var(--border-strong); }
+
+  .meter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .meter-num {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .meter-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .meter-label-input {
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text-1);
+    outline: none;
+    width: 160px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .meter-label-input:hover, .meter-label-input:focus { background: var(--surface); }
+
+  .btn-remove {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-remove:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+  .btn-remove svg { width: 14px; height: 14px; }
+
+  .meter-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .meter-result {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .meter-stat { display: flex; flex-direction: column; gap: 2px; }
+  .meter-stat-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+  .meter-stat-value { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--text-1); }
+  .meter-stat-value.positive { color: var(--success); }
+  .meter-stat-value.negative { color: var(--danger); }
+
+  /* ── Add Meter Button ── */
+  .btn-add-meter {
+    width: 100%;
+    height: 52px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-2);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .btn-add-meter:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .btn-add-meter svg { width: 18px; height: 18px; }
+
+  /* ── Summary ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .summary-stat {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+  }
+  .summary-stat-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .summary-stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text-1); }
+  .summary-stat-value.accent { color: var(--accent); }
+  .summary-stat-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .breakdown-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .breakdown-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bg);
+    color: var(--text-1);
+  }
+  .breakdown-table td:last-child, .breakdown-table th:last-child { text-align: right; font-family: var(--mono); }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+  .breakdown-table .total-row td {
+    font-weight: 700;
+    font-size: 14px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 0;
+  }
+  .breakdown-table .total-row td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .breakdown-table .total-row td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-family: var(--mono); }
+
+  /* ── Actions ── */
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid transparent;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #1D4ED8; border-color: #1D4ED8; }
+  .btn-outline {
+    background: var(--surface);
+    color: var(--text-1);
+    border-color: var(--border);
+  }
+  .btn-outline:hover { border-color: var(--border-strong); background: var(--bg); }
+  .btn-success {
+    background: var(--success-light);
+    color: var(--success);
+    border-color: #6EE7B7;
+  }
+  .btn-success:hover { background: #D1FAE5; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border-color: transparent;
+    padding: 0 12px;
+  }
+  .btn-ghost:hover { color: var(--text-1); background: var(--surface-2); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-3);
+  }
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text-1);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.25s;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Receipt Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.96);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+  }
+  .modal-topbar-title { font-size: 15px; font-weight: 600; }
+  .modal-actions { display: flex; gap: 8px; padding: 16px 24px 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+
+  /* ── Receipt ── */
+  #receipt {
+    padding: 32px 28px;
+    font-family: var(--font);
+  }
+  .receipt-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .receipt-logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .receipt-logo-box {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .receipt-logo-box svg { width: 18px; height: 18px; }
+  .receipt-brand { font-size: 16px; font-weight: 700; color: var(--text-1); }
+  .receipt-tagline { font-size: 11px; color: var(--text-3); }
+  .receipt-meta { text-align: right; }
+  .receipt-meta-num { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500; }
+  .receipt-meta-date { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .receipt-bill-for {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+  .receipt-bill-for-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 2px; }
+  .receipt-bill-for-name { font-size: 15px; font-weight: 600; color: var(--text-1); }
+
+  .receipt-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+  .receipt-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    padding: 6px 10px;
+    background: var(--bg);
+  }
+  .receipt-table th:last-child { text-align: right; }
+  .receipt-table td { padding: 8px 10px; border-bottom: 1px solid var(--bg); color: var(--text-1); font-size: 12px; }
+  .receipt-table td:last-child { text-align: right; font-family: var(--mono); font-size: 12px; }
+  .receipt-table .subtotal td { font-weight: 500; color: var(--text-2); }
+  .receipt-table .divider td { padding: 0; }
+  .receipt-table .divider td:first-child { border-top: 1.5px dashed var(--border); }
+
+  .receipt-total-box {
+    background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .receipt-total-label { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 500; }
+  .receipt-total-amount { font-family: var(--mono); font-size: 24px; font-weight: 700; color: #fff; }
+
+  .receipt-rate-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .receipt-rate-pill {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .receipt-rate-pill-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-3); margin-bottom: 2px; }
+  .receipt-rate-pill-val { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text-1); }
+
+  .receipt-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .receipt-footer-note { font-size: 10px; color: var(--text-3); }
+  .receipt-status {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--success);
+    background: var(--success-light);
+    padding: 3px 10px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .main { padding: 20px 16px 60px; }
+    .card { padding: 20px 16px; }
+    .page-title { font-size: 22px; }
+    .rate-grid { grid-template-columns: 1fr 1fr; }
+    .meter-fields { grid-template-columns: 1fr 1fr; }
+    .header-inner { height: 56px; }
+    .logo-sub { display: none; }
+    .actions { gap: 8px; }
+    .btn { font-size: 13px; padding: 0 16px; }
+    .receipt-header { flex-direction: column; gap: 12px; }
+    .receipt-meta { text-align: left; }
+    .receipt-total-amount { font-size: 20px; }
+  }
+
+  @media (max-width: 420px) {
+    .rate-grid { grid-template-columns: 1fr; }
+    .meter-fields { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .receipt-rate-info { grid-template-columns: 1fr; }
+  }
+
+  /* Animations */
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .meter-card { animation: fadeSlideIn 0.2s ease; }
+  .summary-stat { animation: fadeSlideIn 0.2s ease; }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  .currency-prefix {
+    position: relative;
+  }
+  .currency-prefix::before {
+    content: attr(data-prefix);
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-3);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .currency-prefix .field-input { padding-left: 26px; }
+
+  .info-pill {
+    font-size: 11px;
+    background: var(--warning-light);
+    color: var(--warning);
+    border: 1px solid #FDE68A;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-weight: 500;
+  }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 20px;
+  }
+  .section-divider span {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">ElectriCalc</div>
+        <div class="logo-sub">Electricity Bill Manager</div>
+      </div>
+    </div>
+    <span class="header-badge">Multi-Meter Support</span>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="main">
+  <h1 class="page-title">Calculate your electricity bill</h1>
+  <p class="page-sub">Add one or multiple meter readings, set your rate, and generate a shareable receipt.</p>
+
+  <!-- Rate Configuration -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-group">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-title">Rate configuration</div>
+          <div class="card-desc">Set your utility tariff details</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rate-grid">
+      <div class="field">
+        <label class="field-label" for="currency">Currency symbol</label>
+        <input class="field-input" id="currency" type="text" value="₹" maxlength="3" placeholder="₹">
+      </div>
+      <div class="field">
+        <label class="field-label" for="rate">Rate per unit</label>
+        <div class="currency-prefix" data-prefix="₹" id="rate-prefix">
+          <input class="field-input" id="rate" type="number" min="0" step="0.01" value="6.50" placeholder="0.00">
+        </div>
+        <span class="field-hint">Cost per kWh (unit)</span>
+      </div>
+      <div class="field">
+        <label class="field-label" for="fixed">Fixed charges</label>
+        <div class="currency-prefix" data-prefix="₹" id="fixed-prefix">
+          <input class="field-input" id="fixed" type="number" min="0" step="0.01" value="0" placeholder="0.00">
+        </div>
+        <span class="field-hint">Monthly fixed/minimum charge</span>
+      </div>
+      <div class="field">
+        <label class="field-label" for="tax">Tax / surcharge (%)</label>
+        <input class="field-input" id="tax" type="number" min="0" max="100" step="0.1" value="0" placeholder="0">
+        <span class="field-hint">Optional. Applied on energy + fixed</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px;">
+      <div class="field">
+        <label class="field-label" for="consumer-name">Consumer / account name <span style="color:var(--text-3); text-transform: none; font-weight: 400;">(optional)</span></label>
+        <input class="field-input" id="consumer-name" type="text" placeholder="e.g. Ramesh Kumar — Flat 4B" style="max-width: 400px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Meter Readings -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-group">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h.01M12 8h.01M17 8h.01M7 12h4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-title">Meter readings</div>
+          <div class="card-desc">Enter previous and current readings for each meter</div>
+        </div>
+      </div>
+      <span id="meter-count-badge" class="info-pill">1 meter</span>
+    </div>
+
+    <div id="meters-list" class="meters-list"></div>
+
+    <button class="btn-add-meter" id="btn-add" onclick="addMeter()" style="margin-top: 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+      </svg>
+      Add another meter
+    </button>
+  </div>
+
+  <!-- Summary -->
+  <div class="card" id="summary-card">
+    <div class="card-header">
+      <div class="card-title-group">
+        <div class="card-icon" style="background: var(--success-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--success);">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-title">Bill summary</div>
+          <div class="card-desc">Computed from your readings and tariff</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-grid" id="summary-stats">
+      <div class="summary-stat">
+        <div class="summary-stat-label">Total units</div>
+        <div class="summary-stat-value" id="stat-units">0</div>
+        <div class="summary-stat-sub">kWh consumed</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-stat-label">Energy charges</div>
+        <div class="summary-stat-value" id="stat-energy">₹0.00</div>
+        <div class="summary-stat-sub">At current rate</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-stat-label">Fixed charges</div>
+        <div class="summary-stat-value" id="stat-fixed">₹0.00</div>
+        <div class="summary-stat-sub">Monthly fixed</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-stat-label">Total amount</div>
+        <div class="summary-stat-value accent" id="stat-total">₹0.00</div>
+        <div class="summary-stat-sub">Incl. all charges</div>
+      </div>
+    </div>
+
+    <div id="breakdown-container">
+      <div class="section-divider"><span>Meter breakdown</span></div>
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Meter</th>
+            <th>Previous</th>
+            <th>Current</th>
+            <th>Units</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="breakdown-body"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 24px;">
+      <div class="actions">
+        <button class="btn btn-primary" onclick="openReceipt()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Generate receipt
+        </button>
+        <button class="btn btn-outline" onclick="resetAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+          </svg>
+          Reset all
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-topbar">
+      <div class="modal-topbar-title">Receipt preview</div>
+      <button class="btn btn-ghost" onclick="closeModal()" style="height: 32px; padding: 0 10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Close
+      </button>
+    </div>
+
+    <!-- Receipt Content -->
+    <div id="receipt">
+      <div class="receipt-header">
+        <div>
+          <div class="receipt-logo-row">
+            <div class="receipt-logo-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+            </div>
+            <div class="receipt-brand">ElectriCalc</div>
+          </div>
+          <div class="receipt-tagline">Electricity Bill Receipt</div>
+        </div>
+        <div class="receipt-meta">
+          <div class="receipt-meta-num" id="r-billno"></div>
+          <div class="receipt-meta-date" id="r-date"></div>
+        </div>
+      </div>
+
+      <div class="receipt-bill-for" id="r-consumer-wrap">
+        <div class="receipt-bill-for-label">Bill prepared for</div>
+        <div class="receipt-bill-for-name" id="r-consumer"></div>
+      </div>
+
+      <table class="receipt-table" id="r-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Units</th>
+            <th>Rate</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="r-tbody"></tbody>
+      </table>
+
+      <div class="receipt-rate-info">
+        <div class="receipt-rate-pill">
+          <div class="receipt-rate-pill-label">Rate per unit</div>
+          <div class="receipt-rate-pill-val" id="r-rate"></div>
+        </div>
+        <div class="receipt-rate-pill">
+          <div class="receipt-rate-pill-label">Fixed charges</div>
+          <div class="receipt-rate-pill-val" id="r-fixed"></div>
+        </div>
+        <div class="receipt-rate-pill" id="r-tax-pill" style="display:none">
+          <div class="receipt-rate-pill-label">Tax / surcharge</div>
+          <div class="receipt-rate-pill-val" id="r-tax"></div>
+        </div>
+      </div>
+
+      <div class="receipt-total-box">
+        <div>
+          <div class="receipt-total-label">Total amount due</div>
+          <div style="font-size:10px; color: rgba(255,255,255,0.55); margin-top: 2px;" id="r-units-sub"></div>
+        </div>
+        <div class="receipt-total-amount" id="r-total"></div>
+      </div>
+
+      <div class="receipt-footer">
+        <div class="receipt-footer-note">Generated by ElectriCalc • For reference only</div>
+        <div class="receipt-status">Computed</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="downloadReceipt()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download image
+      </button>
+      <button class="btn btn-success" onclick="shareReceipt()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Share receipt
+      </button>
+      <button class="btn btn-outline" onclick="copyReceiptText()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copy text
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let meters = [];
+  let meterCounter = 0;
+
+  function genId() { return ++meterCounter; }
+
+  function addMeter(label) {
+    const id = genId();
+    meters.push({ id, label: label || `Meter ${id}`, prev: '', curr: '' });
+    renderMeters();
+    updateSummary();
+  }
+
+  function removeMeter(id) {
+    if (meters.length <= 1) { showToast('At least one meter is required'); return; }
+    meters = meters.filter(m => m.id !== id);
+    renderMeters();
+    updateSummary();
+  }
+
+  function getMeterValues(id) {
+    const prev = parseFloat(document.getElementById(`prev-${id}`)?.value) || 0;
+    const curr = parseFloat(document.getElementById(`curr-${id}`)?.value) || 0;
+    const label = document.getElementById(`lbl-${id}`)?.value || `Meter ${id}`;
+    return { prev, curr, label, units: Math.max(0, curr - prev) };
+  }
+
+  function getRate() {
+    return {
+      rate: parseFloat(document.getElementById('rate')?.value) || 0,
+      fixed: parseFloat(document.getElementById('fixed')?.value) || 0,
+      tax: parseFloat(document.getElementById('tax')?.value) || 0,
+      currency: document.getElementById('currency')?.value || '₹',
+    };
+  }
+
+  function fmt(val, currency) {
+    return `${currency}${val.toFixed(2)}`;
+  }
+
+  function renderMeters() {
+    const list = document.getElementById('meters-list');
+    list.innerHTML = '';
+    meters.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'meter-card';
+      div.id = `mcard-${m.id}`;
+      const currency = document.getElementById('currency')?.value || '₹';
+      div.innerHTML = `
+        <div class="meter-header">
+          <div class="meter-num">
+            <div class="meter-badge">${m.id}</div>
+            <input class="meter-label-input" id="lbl-${m.id}" type="text" value="${m.label}" placeholder="Meter name" oninput="updateSummary()">
+          </div>
+          <button class="btn-remove" onclick="removeMeter(${m.id})" title="Remove meter" aria-label="Remove meter ${m.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="meter-fields">
+          <div class="field">
+            <label class="field-label" for="prev-${m.id}">Previous reading</label>
+            <input class="field-input" id="prev-${m.id}" type="number" min="0" step="0.01" value="${m.prev}" placeholder="e.g. 1240" oninput="onMeterInput(${m.id})">
+            <span class="field-hint">Last month's reading (kWh)</span>
+          </div>
+          <div class="field">
+            <label class="field-label" for="curr-${m.id}">Current reading</label>
+            <input class="field-input" id="curr-${m.id}" type="number" min="0" step="0.01" value="${m.curr}" placeholder="e.g. 1380" oninput="onMeterInput(${m.id})">
+            <span class="field-hint">This month's reading (kWh)</span>
+          </div>
+        </div>
+        <div class="meter-result" id="mresult-${m.id}">
+          <div class="meter-stat">
+            <div class="meter-stat-label">Units consumed</div>
+            <div class="meter-stat-value" id="munits-${m.id}">—</div>
+          </div>
+          <div class="meter-stat">
+            <div class="meter-stat-label">Energy charge</div>
+            <div class="meter-stat-value" id="mamt-${m.id}">—</div>
+          </div>
+          <div class="meter-stat" id="merr-${m.id}" style="display:none">
+            <div class="meter-stat-label">Status</div>
+            <div class="meter-stat-value negative" id="merrtxt-${m.id}">⚠ Check reading</div>
+          </div>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+
+    const badge = document.getElementById('meter-count-badge');
+    badge.textContent = `${meters.length} meter${meters.length > 1 ? 's' : ''}`;
+
+    updateCurrencyPrefixes();
+  }
+
+  function onMeterInput(id) {
+    const { prev, curr, units } = getMeterValues(id);
+    const { rate, currency } = getRate();
+
+    const errEl = document.getElementById(`merr-${id}`);
+    const unitsEl = document.getElementById(`munits-${id}`);
+    const amtEl = document.getElementById(`mamt-${id}`);
+
+    if (curr > 0 && prev > curr) {
+      errEl.style.display = '';
+      unitsEl.textContent = '—';
+      amtEl.textContent = '—';
+    } else {
+      errEl.style.display = 'none';
+      unitsEl.textContent = units > 0 ? `${units.toFixed(2)} kWh` : '—';
+      amtEl.textContent = units > 0 ? fmt(units * rate, currency) : '—';
+    }
+    updateSummary();
+  }
+
+  function updateCurrencyPrefixes() {
+    const currency = document.getElementById('currency')?.value || '₹';
+    document.getElementById('rate-prefix').dataset.prefix = currency;
+    document.getElementById('fixed-prefix').dataset.prefix = currency;
+  }
+
+  function updateSummary() {
+    const { rate, fixed, tax, currency } = getRate();
+    let totalUnits = 0;
+
+    const tbody = document.getElementById('breakdown-body');
+    tbody.innerHTML = '';
+
+    meters.forEach(m => {
+      const { prev, curr, label, units } = getMeterValues(m.id);
+      const hasError = prev > curr && curr > 0;
+      if (!hasError) totalUnits += units;
+
+      const amt = units * rate;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${label}</td>
+        <td style="font-family:var(--mono)">${prev > 0 ? prev.toFixed(2) : '—'}</td>
+        <td style="font-family:var(--mono)">${curr > 0 ? curr.toFixed(2) : '—'}</td>
+        <td style="font-family:var(--mono)">${!hasError && units > 0 ? units.toFixed(2) : (hasError ? '<span style="color:var(--danger)">⚠</span>' : '—')}</td>
+        <td>${!hasError && units > 0 ? fmt(amt, currency) : '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    if (meters.length > 1) {
+      const trTotal = document.createElement('tr');
+      trTotal.className = 'total-row';
+      trTotal.innerHTML = `
+        <td><strong>All meters</strong></td>
+        <td></td>
+        <td></td>
+        <td style="font-family:var(--mono)">${totalUnits.toFixed(2)}</td>
+        <td>${fmt(totalUnits * rate, currency)}</td>
+      `;
+      tbody.appendChild(trTotal);
+    }
+
+    const energyAmt = totalUnits * rate;
+    const subtotal = energyAmt + fixed;
+    const taxAmt = subtotal * (tax / 100);
+    const total = subtotal + taxAmt;
+
+    document.getElementById('stat-units').textContent = totalUnits.toFixed(2);
+    document.getElementById('stat-energy').textContent = fmt(energyAmt, currency);
+    document.getElementById('stat-fixed').textContent = fmt(fixed, currency);
+    document.getElementById('stat-total').textContent = fmt(total, currency);
+
+    // Update ₹ prefixes in stat labels
+    document.querySelectorAll('.summary-stat-value').forEach(el => {
+      if (el.textContent.match(/^[₹$€£¥]/)) {
+        const num = el.textContent.replace(/^./, '');
+        el.textContent = currency + num;
+      }
+    });
+  }
+
+  function openReceipt() {
+    const { rate, fixed, tax, currency } = getRate();
+    let totalUnits = 0;
+    const meterData = [];
+
+    meters.forEach(m => {
+      const { prev, curr, label, units } = getMeterValues(m.id);
+      const hasError = prev > curr && curr > 0;
+      if (!hasError) totalUnits += units;
+      meterData.push({ label, prev, curr, units: hasError ? 0 : units });
+    });
+
+    const energyAmt = totalUnits * rate;
+    const subtotal = energyAmt + fixed;
+    const taxAmt = subtotal * (tax / 100);
+    const total = subtotal + taxAmt;
+
+    // Populate receipt
+    const now = new Date();
+    document.getElementById('r-billno').textContent = `Bill #${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
+    document.getElementById('r-date').textContent = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const consumerName = document.getElementById('consumer-name').value;
+    const consumerWrap = document.getElementById('r-consumer-wrap');
+    if (consumerName) {
+      consumerWrap.style.display = '';
+      document.getElementById('r-consumer').textContent = consumerName;
+    } else {
+      consumerWrap.style.display = 'none';
+    }
+
+    const tbody = document.getElementById('r-tbody');
+    tbody.innerHTML = '';
+
+    meterData.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m.label}</td>
+        <td style="font-family:var(--mono);font-size:12px">${m.units.toFixed(2)}</td>
+        <td style="font-family:var(--mono);font-size:12px">${currency}${rate.toFixed(2)}</td>
+        <td>${fmt(m.units * rate, currency)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    if (fixed > 0) {
+      const tr = document.createElement('tr');
+      tr.className = 'subtotal';
+      tr.innerHTML = `<td>Fixed charges</td><td>—</td><td>—</td><td>${fmt(fixed, currency)}</td>`;
+      tbody.appendChild(tr);
+    }
+    if (tax > 0) {
+      const tr = document.createElement('tr');
+      tr.className = 'subtotal';
+      tr.innerHTML = `<td>Tax / surcharge (${tax}%)</td><td>—</td><td>—</td><td>${fmt(taxAmt, currency)}</td>`;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('r-rate').textContent = `${currency}${rate.toFixed(2)} / kWh`;
+    document.getElementById('r-fixed').textContent = fixed > 0 ? fmt(fixed, currency) : 'None';
+    const taxPill = document.getElementById('r-tax-pill');
+    if (tax > 0) {
+      taxPill.style.display = '';
+      document.getElementById('r-tax').textContent = `${tax}% (${fmt(taxAmt, currency)})`;
+    } else {
+      taxPill.style.display = 'none';
+    }
+
+    document.getElementById('r-total').textContent = fmt(total, currency);
+    document.getElementById('r-units-sub').textContent = `${totalUnits.toFixed(2)} kWh consumed`;
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  function downloadReceipt() {
+    const receipt = document.getElementById('receipt');
+    const origBg = receipt.style.background;
+    receipt.style.background = '#ffffff';
+
+    html2canvas(receipt, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    }).then(canvas => {
+      receipt.style.background = origBg;
+      const link = document.createElement('a');
+      link.download = `electricity-bill-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Receipt downloaded as image');
+    }).catch(() => {
+      receipt.style.background = origBg;
+      showToast('Download failed. Try again.');
+    });
+  }
+
+  async function shareReceipt() {
+    const receipt = document.getElementById('receipt');
+    receipt.style.background = '#ffffff';
+
+    try {
+      const canvas = await html2canvas(receipt, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      receipt.style.background = '';
+      canvas.toBlob(async blob => {
+        const file = new File([blob], 'electricity-bill.png', { type: 'image/png' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: 'Electricity Bill Receipt', files: [file] });
+          showToast('Receipt shared!');
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'electricity-bill.png'; a.click();
+          URL.revokeObjectURL(url);
+          showToast('Saved as image (sharing not supported in this browser)');
+        }
+      }, 'image/png');
+    } catch {
+      receipt.style.background = '';
+      showToast('Share failed. Try download instead.');
+    }
+  }
+
+  function copyReceiptText() {
+    const { rate, fixed, tax, currency } = getRate();
+    let totalUnits = 0;
+    const lines = [];
+
+    meters.forEach(m => {
+      const { prev, curr, label, units } = getMeterValues(m.id);
+      totalUnits += units;
+      lines.push(`${label}: ${prev} → ${curr} = ${units.toFixed(2)} kWh (${fmt(units * rate, currency)})`);
+    });
+
+    const energyAmt = totalUnits * rate;
+    const subtotal = energyAmt + fixed;
+    const taxAmt = subtotal * (tax / 100);
+    const total = subtotal + taxAmt;
+
+    const consumer = document.getElementById('consumer-name').value;
+    const text = [
+      '=== ELECTRICITY BILL ===',
+      consumer ? `Consumer: ${consumer}` : '',
+      `Date: ${new Date().toLocaleDateString('en-IN')}`,
+      '',
+      '--- Meter Readings ---',
+      ...lines,
+      '',
+      `Energy charges: ${fmt(energyAmt, currency)}`,
+      fixed > 0 ? `Fixed charges: ${fmt(fixed, currency)}` : '',
+      tax > 0 ? `Tax (${tax}%): ${fmt(taxAmt, currency)}` : '',
+      `TOTAL: ${fmt(total, currency)}`,
+      '',
+      'Generated by ElectriCalc',
+    ].filter(l => l !== undefined && l !== null).join('\n');
+
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Bill text copied to clipboard');
+    }).catch(() => showToast('Copy failed'));
+  }
+
+  function resetAll() {
+    if (!confirm('Reset all readings and settings?')) return;
+    document.getElementById('rate').value = '6.50';
+    document.getElementById('fixed').value = '0';
+    document.getElementById('tax').value = '0';
+    document.getElementById('currency').value = '₹';
+    document.getElementById('consumer-name').value = '';
+    meters = [];
+    meterCounter = 0;
+    addMeter('Main Meter');
+    showToast('Cleared — starting fresh');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // Update currency symbol in prefixes on change
+  document.addEventListener('input', e => {
+    if (e.target.id === 'currency') {
+      updateCurrencyPrefixes();
+      updateSummary();
+    }
+    if (['rate', 'fixed', 'tax'].includes(e.target.id)) {
+      updateSummary();
+      meters.forEach(m => onMeterInput(m.id));
+    }
+  });
+
+  // Init
+  addMeter('Main Meter');
+</script>
+</body>
+</html>
