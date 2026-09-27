@@ -643,7 +643,13 @@
         <div class="logo-sub">Electricity Bill Manager</div>
       </div>
     </div>
-    <span class="header-badge">Multi-Meter Support</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="save-indicator" style="font-size:11px;color:var(--text-3);display:none;">
+        <span id="save-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);margin-right:4px;vertical-align:middle;"></span>
+        <span id="save-text">Saved</span>
+      </span>
+      <span class="header-badge">Multi-Meter Support</span>
+    </div>
   </div>
 </header>
 
@@ -792,7 +798,13 @@
           </svg>
           Generate receipt
         </button>
-        <button class="btn btn-outline" onclick="resetAll()">
+        <button class="btn btn-outline" onclick="rolloverReadings()" title="Copy current readings to previous for next month">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          Next month
+        </button>
+        <button class="btn btn-ghost" onclick="resetAll()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
           </svg>
@@ -914,24 +926,54 @@
 
   function genId() { return ++meterCounter; }
 
+  // Snapshot current DOM values back into meters[] before any re-render
+  function snapshotMeters() {
+    meters.forEach(m => {
+      const prevEl = document.getElementById('prev-' + m.id);
+      const currEl = document.getElementById('curr-' + m.id);
+      const lblEl  = document.getElementById('lbl-'  + m.id);
+      if (prevEl) m.prev  = prevEl.value;
+      if (currEl) m.curr  = currEl.value;
+      if (lblEl)  m.label = lblEl.value;
+    });
+  }
+
   function addMeter(label) {
+    snapshotMeters();
     const id = genId();
-    meters.push({ id, label: label || `Meter ${id}`, prev: '', curr: '' });
+    meters.push({ id, label: label || 'Meter ' + id, prev: '', curr: '' });
     renderMeters();
     updateSummary();
+    const newCard = document.getElementById('mcard-' + id);
+    if (newCard) newCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function removeMeter(id) {
     if (meters.length <= 1) { showToast('At least one meter is required'); return; }
+    snapshotMeters();
     meters = meters.filter(m => m.id !== id);
     renderMeters();
     updateSummary();
   }
 
+  // Roll current readings to previous for next billing cycle
+  function rolloverReadings() {
+    snapshotMeters();
+    const anyValue = meters.some(m => parseFloat(m.curr) > 0);
+    if (!anyValue) { showToast('No current readings to roll over'); return; }
+    if (!confirm('Copy current readings to previous readings for next month? Current fields will be cleared.')) return;
+    meters.forEach(m => { m.prev = m.curr; m.curr = ''; });
+    renderMeters();
+    meters.forEach(m => onMeterInput(m.id));
+    updateSummary();
+    saveToStorage();
+    showToast('Rolled over — enter new current readings now');
+  }
+
   function getMeterValues(id) {
-    const prev = parseFloat(document.getElementById(`prev-${id}`)?.value) || 0;
-    const curr = parseFloat(document.getElementById(`curr-${id}`)?.value) || 0;
-    const label = document.getElementById(`lbl-${id}`)?.value || `Meter ${id}`;
+    const prev = parseFloat(document.getElementById('prev-' + id) ? document.getElementById('prev-' + id).value : 0) || 0;
+    const curr = parseFloat(document.getElementById('curr-' + id) ? document.getElementById('curr-' + id).value : 0) || 0;
+    const label = document.getElementById('lbl-' + id) ? document.getElementById('lbl-' + id).value : ('Meter ' + id);
     return { prev, curr, label, units: Math.max(0, curr - prev) };
   }
 
@@ -1022,6 +1064,7 @@
       amtEl.textContent = units > 0 ? fmt(units * rate, currency) : '—';
     }
     updateSummary();
+    scheduleSave();
   }
 
   function updateCurrencyPrefixes() {
@@ -1225,10 +1268,9 @@
     meters.forEach(m => {
       const { prev, curr, label, units } = getMeterValues(m.id);
       totalUnits += units;
-      meterLines.push(`${label}:`);
-      meterLines.push(`  Previous Reading: ${prev > 0 ? prev.toFixed(2) : '—'}`);
-      meterLines.push(`  Current Reading:  ${curr > 0 ? curr.toFixed(2) : '—'}`);
-      meterLines.push(`  Units Consumed:   ${units.toFixed(2)} kWh`);
+      meterLines.push(label + ':');
+      meterLines.push('  Previous Reading: ' + (prev > 0 ? prev.toFixed(2) : '—'));
+      meterLines.push('  Current Reading:  ' + (curr > 0 ? curr.toFixed(2) : '—'));
     });
 
     const energyAmt = totalUnits * rate;
@@ -1237,24 +1279,20 @@
     const total = subtotal + taxAmt;
 
     const now = new Date();
-    const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+    const dateStr = now.getDate() + '/' + (now.getMonth()+1) + '/' + now.getFullYear();
     const consumer = document.getElementById('consumer-name').value;
 
-    const parts = [
-      '=== ELECTRICITY BILL ===',
-      `Date: ${dateStr}`,
-    ];
-    if (consumer) parts.push(`Consumer: ${consumer}`);
+    const parts = ['=== ELECTRICITY BILL ===', 'Date: ' + dateStr];
+    if (consumer) parts.push('Consumer: ' + consumer);
     parts.push('');
     parts.push('--- Meter Readings ---');
     parts.push(...meterLines);
     parts.push('');
-    parts.push(`Total Units: ${totalUnits.toFixed(2)} kWh`);
-    parts.push(`Rate per Unit: ${currency}${rate.toFixed(2)}`);
-    parts.push(`Energy Charges: ${fmt(energyAmt, currency)}`);
-    if (fixed > 0) parts.push(`Fixed Charges: ${fmt(fixed, currency)}`);
-    if (tax > 0) parts.push(`Tax (${tax}%): ${fmt(taxAmt, currency)}`);
-    parts.push(`TOTAL: ${fmt(total, currency)}`);
+    parts.push('Total Units: ' + totalUnits.toFixed(2) + ' kWh');
+    parts.push('Energy Charges: ' + fmt(energyAmt, currency));
+    if (fixed > 0) parts.push('Fixed Charges: ' + fmt(fixed, currency));
+    if (tax > 0) parts.push('Tax (' + tax + '%): ' + fmt(taxAmt, currency));
+    parts.push('TOTAL: ' + fmt(total, currency));
 
     const text = parts.join('\n');
 
@@ -1265,6 +1303,8 @@
 
   function resetAll() {
     if (!confirm('Reset all readings and settings?')) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    document.getElementById('save-indicator').style.display = 'none';
     document.getElementById('rate').value = '6.80';
     document.getElementById('fixed').value = '184';
     document.getElementById('tax').value = '0';
@@ -1273,6 +1313,7 @@
     meters = [];
     meterCounter = 0;
     addMeter('Main Meter');
+    addMeter('Meter 2');
     showToast('Cleared — starting fresh');
   }
 
@@ -1281,6 +1322,66 @@
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // ── localStorage persistence ──
+  const STORAGE_KEY = 'electricalc_v1';
+
+  function saveToStorage() {
+    snapshotMeters();
+    const data = {
+      meters,
+      meterCounter,
+      rate:     document.getElementById('rate').value,
+      fixed:    document.getElementById('fixed').value,
+      tax:      document.getElementById('tax').value,
+      currency: document.getElementById('currency').value,
+      consumer: document.getElementById('consumer-name').value,
+      savedAt:  Date.now(),
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      showSaveIndicator();
+    } catch(e) { /* storage full or blocked */ }
+  }
+
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.meters) || data.meters.length === 0) return false;
+
+      // Restore rate config
+      if (data.rate     !== undefined) document.getElementById('rate').value     = data.rate;
+      if (data.fixed    !== undefined) document.getElementById('fixed').value    = data.fixed;
+      if (data.tax      !== undefined) document.getElementById('tax').value      = data.tax;
+      if (data.currency !== undefined) document.getElementById('currency').value = data.currency;
+      if (data.consumer !== undefined) document.getElementById('consumer-name').value = data.consumer;
+
+      // Restore meters
+      meters = data.meters;
+      meterCounter = data.meterCounter || data.meters.length;
+
+      return true;
+    } catch(e) { return false; }
+  }
+
+  let _saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(saveToStorage, 600);
+  }
+
+  function showSaveIndicator() {
+    const el = document.getElementById('save-indicator');
+    const txt = document.getElementById('save-text');
+    if (!el) return;
+    const now = new Date();
+    const t = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    txt.textContent = 'Saved at ' + t;
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
   }
 
   // Update currency symbol in prefixes on change
@@ -1293,10 +1394,27 @@
       updateSummary();
       meters.forEach(m => onMeterInput(m.id));
     }
+    scheduleSave();
   });
 
-  // Init
-  addMeter('Main Meter');
+  // Also save on meter label changes (they use oninput on the label input)
+  document.addEventListener('input', e => {
+    if (e.target.classList.contains('meter-label-input')) scheduleSave();
+  });
+
+  // ── Init ──
+  const restored = loadFromStorage();
+  if (restored) {
+    renderMeters();
+    meters.forEach(m => onMeterInput(m.id));
+    updateSummary();
+    updateCurrencyPrefixes();
+    showSaveIndicator();
+  } else {
+    // Fresh start — 2 default meters
+    addMeter('Main Meter');
+    addMeter('Meter 2');
+  }
 </script>
 </body>
 </html>
